@@ -1,9 +1,11 @@
 ---
-title: "Yellow Cab Ride Data 2023 Q1"
+title: "NYC Yellow Cab Ride Data 2023 Q1"
 format: pdf
 prefer-html: true
 editor: visual
 ---
+
+# Assignment 1.2 - Example submission
 
 ```{r}
 #| warning: false
@@ -16,11 +18,11 @@ library(plotly)
 
 ## Data Source
 
-This data ways downloaded from the NYC.gov **Taxi & Limousine Commission**, and represents Yellow Cab trip data from January through March of 2023. The data is in monthly `parquet` files, and has been assembed into a single 3 month time series. The original data is available at https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+This data ways downloaded from the NYC.gov **Taxi & Limousine Commission**, and represents Yellow Cab trip data from January through March of 2023. The data is in monthly `parquet` files, and has been assembed into a single 3 month time series. The original data is available at <https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page>.
 
 ## Importing the Data
 
-Downloaded files are in the `data` directory
+Downloaded files are in the `data` directory of [this Github repo](https://github.com/dsdaveh/nyc-taxidata).
 
 ```{r}
 pfiles <- here('data', list.files(here('data')))
@@ -43,6 +45,7 @@ small_ts <- small |>
     as_tsibble(index = ymd)
 
 est_rows <- (1e-6 * length(pfiles) * nrow(small) / frac) |> round(1)
+est_rows
 ```
 
 Since we have roughly `r est_rows`M rows for the three months covered by the data, we read and aggregate the data in one step.
@@ -68,20 +71,6 @@ rides_tsplt <- rides |>
        y = "Trips ('000)",
        x = "")
 rides_tsplt
-```
-
-```{r}
-#| include: false
-# Interactive plot
-ggplotly(
-    rides |> 
-        mutate(day = weekdays.Date(ymd)) |> 
-        ggplot(aes(ymd, trips, label = day)) +
-        geom_line() +
-        labs(title = "NYC Yellow Cab Trips 2023",
-             y = "Trips ('000)",
-             x = "")
-)
 ```
 
 ## Discussion

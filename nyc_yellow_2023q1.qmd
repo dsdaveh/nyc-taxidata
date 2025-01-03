@@ -1,8 +1,12 @@
 ---
 title: "NYC Yellow Cab Ride Data 2023 Q1"
-format: pdf
+format: html
 prefer-html: true
 editor: visual
+resource_files:
+- "data/yellow_tripdata_2023-01.parquet"
+- "data/yellow_tripdata_2023-02.parquet"
+- "data/yellow_tripdata_2023-03.parquet"
 ---
 
 # Assignment 1.2 - Example submission
@@ -26,6 +30,7 @@ Downloaded files are in the `data` directory of [this Github repo](https://githu
 
 ```{r}
 pfiles <- here('data', list.files(here('data')))
+pfiles |> basename() |> knitr::kable(col.names = 'File')
 ```
 
 Read in a small sample to explore the dataset.
@@ -70,7 +75,7 @@ rides_tsplt <- rides |>
       labs(title = "NYC Yellow Cab Trips 2023",
        y = "Trips ('000)",
        x = "")
-rides_tsplt
+ggplotly(rides_tsplt)
 ```
 
 ## Discussion

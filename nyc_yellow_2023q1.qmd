@@ -6,7 +6,7 @@ resource_files:
 - "data/*"
 ---
 
-# Assignment 1.2 - Example submission
+# Parquet dataset example 
 
 ```{r}
 #| warning: false

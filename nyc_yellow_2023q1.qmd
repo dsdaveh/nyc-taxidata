@@ -1,12 +1,9 @@
 ---
 title: "NYC Yellow Cab Ride Data 2023 Q1"
 format: html
-prefer-html: true
 editor: visual
 resource_files:
-- "data/yellow_tripdata_2023-01.parquet"
-- "data/yellow_tripdata_2023-02.parquet"
-- "data/yellow_tripdata_2023-03.parquet"
+- "data/*"
 ---
 
 # Assignment 1.2 - Example submission
@@ -14,10 +11,15 @@ resource_files:
 ```{r}
 #| warning: false
 #| message: false
+
 library(arrow)
 library(fpp3)
 library(here)
 library(plotly)
+library(lobstr)
+library(tictoc)
+
+tic()
 ```
 
 ## Data Source
@@ -50,13 +52,14 @@ small_ts <- small |>
     as_tsibble(index = ymd)
 
 est_rows <- (1e-6 * length(pfiles) * nrow(small) / frac) |> round(1)
-est_rows
+est_size <- obj_size(small) / frac
 ```
 
-Since we have roughly `r est_rows`M rows for the three months covered by the data, we read and aggregate the data in one step.
+Since we have roughly `r est_rows`M rows (`r format(est_size)`) for the three months covered by the data, we read and aggregate the data in one step.
 
 ```{r}
 
+tic('aggregate data')
 rides <- purrr::map_dfr(pfiles, read_parquet) |> 
     mutate(ymd = as.Date(with_tz(tpep_pickup_datetime, "America/New_York"))) |> 
     filter(year(ymd) == 2023,
@@ -65,6 +68,7 @@ rides <- purrr::map_dfr(pfiles, read_parquet) |>
     mutate(trips = n / 1000) |> 
     select(-n) |> 
     as_tsibble(index = ymd)
+toc()
 ```
 
 ## Time Series Plot
@@ -83,3 +87,8 @@ ggplotly(rides_tsplt)
 The data shows a clear weekly seasonality, and perhaps a mild trend. We can see minimums for Sunday and Monday, but there is an irregular pattern of 2-day verus 1-day troughs. These may be difficult to model without multiple years of data.\
 \
 The 3 month series may be adequate for producing a forecast of trips that would be useful for operational planning, since support staff and resources are required in proportion to the number of trips. There is other data in the dataset, not explored above that may also help forecast the trips volume.
+
+```{r}
+toc()
+```
+

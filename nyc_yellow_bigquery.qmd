@@ -1,5 +1,5 @@
 ---
-title: "NYC Yellow Cab Ride Data 2023 Q1 - DuckDB"
+title: "NYC Yellow Cab Ride Data 2023 Q1 - BigQuery"
 format: html
 ---
 
@@ -66,7 +66,7 @@ rides_2020_q1 <- yellow_tripdata |>
            pickup_month = month(tpep_pickup_datetime),
            pickup_date = as.Date(tpep_pickup_datetime)) |> 
     filter(pickup_year == 2020, 
-           pickup_month <= 12) 
+           pickup_month <= 3) 
 
 rides <- rides_2020_q1 |> 
     group_by(pickup_date) |> 

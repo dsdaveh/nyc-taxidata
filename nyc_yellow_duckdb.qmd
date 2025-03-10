@@ -1,0 +1,102 @@
+---
+title: "NYC Yellow Cab Ride Data 2023 Q1 - DuckDB"
+format: html
+---
+
+# duckdb/Parquet dataset example
+
+```{r}
+#| warning: false
+#| message: false
+
+library(DBI)
+library(duckdb)
+library(dplyr)
+library(dbplyr)
+
+library(here)
+library(fpp3)
+library(plotly)
+library(lobstr)
+library(tictoc)
+
+tic()
+```
+
+## Data Source
+
+This data ways downloaded from the NYC.gov **Taxi & Limousine Commission**, and represents Yellow Cab trip data from January through March of 2023. The data is in monthly `parquet` files, and has been assembed into a single 3 month time series. The original data is available at <https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page>.
+
+## Accessing the Data
+
+
+
+```{r}
+# Connect to DuckDB (creates "nyc.duckdb" if it doesn't exist)
+con <- dbConnect(duckdb::duckdb(), dbdir = "nyc.duckdb", read_only = FALSE)
+
+tables <- dbListTables(con)
+if (length(tables) == 0) {
+
+    # Create or replace a table "trips" using all parquet files in the directory
+    data_dir <- here("data")
+    dbExecute(con, sprintf("
+        CREATE OR REPLACE TABLE yellow_tripdata AS
+        SELECT *
+        FROM parquet_scan('%s/*.parquet')", data_dir)
+    )
+}
+```
+
+## Interogate the data
+
+```{r}
+yellow_tripdata <- tbl(con, "yellow_tripdata")
+```
+
+
+```{r}
+tic('aggregate data')
+
+rides_2020_q1 <- yellow_tripdata |> 
+    mutate(pickup_year = year(tpep_pickup_datetime),
+           pickup_month = month(tpep_pickup_datetime),
+           pickup_date = as.Date(tpep_pickup_datetime)) |> 
+    filter(pickup_year == 2023, 
+           pickup_month <= 3) 
+```
+
+```{r}
+rides <- rides_2020_q1 |> 
+    group_by(pickup_date) |> 
+    summarise(trips = n()) |> 
+    arrange(pickup_date) |> 
+    collect() |> 
+    as_tsibble(index = pickup_date)
+```
+```{r}
+toc()
+```
+
+
+## Time Series Plot
+
+```{r}
+rides_tsplt <- rides |> 
+    autoplot(trips) +
+      labs(title = "NYC Yellow Cab Trips 2023",
+       y = "Trips ('000)",
+       x = "")
+ggplotly(rides_tsplt)
+```
+
+## Discussion
+
+The data shows a clear weekly seasonality, and perhaps a mild trend. We can see minimums for Sunday and Monday, but there is an irregular pattern of 2-day verus 1-day troughs. These may be difficult to model without multiple years of data.\
+\
+The 3 month series may be adequate for producing a forecast of trips that would be useful for operational planning, since support staff and resources are required in proportion to the number of trips. There is other data in the dataset, not explored above that may also help forecast the trips volume.
+
+```{r}
+toc()
+dbDisconnect(con, shutdown = TRUE)
+```

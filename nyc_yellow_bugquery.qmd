@@ -1,0 +1,98 @@
+---
+title: "NYC Yellow Cab Ride Data 2023 Q1 - DuckDB"
+format: html
+---
+
+# duckdb/Parquet dataset example
+
+```{r}
+#| warning: false
+#| message: false
+
+library(DBI)
+library(bigrquery)
+library(dplyr)
+library(dbplyr)
+
+library(here)
+library(fpp3)
+library(plotly)
+library(lobstr)
+library(tictoc)
+
+tic()
+```
+
+## Data Source
+
+This data ways downloaded from the NYC.gov **Taxi & Limousine Commission**, and represents Yellow Cab trip data from January through March of 2023. The data is in monthly `parquet` files, and has been assembed into a single 3 month time series. The original data is available at <https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page>.
+
+## Accessing the Data
+
+```
+bq_auth()
+```
+
+
+```{r}
+con <- dbConnect(
+  bigrquery::bigquery(),
+  project = "zoomcamp-data-eng",        # Your Google Cloud Project ID
+  dataset = "m1_dataset",               # The dataset name
+  billing = "zoomcamp-data-eng"   # Required for queries that incur costs
+)
+```
+
+```{r}
+yellow_tripdata <- tbl(con, "yellow_tripdata")
+
+unique_filenames <- yellow_tripdata |> 
+    distinct(filename) |> 
+    arrange(filename) |>
+    collect()  # This fetches the results into R
+
+knitr::kable(unique_filenames)
+```
+
+
+## Interogate the data
+
+
+```{r}
+tic('aggregate data')
+
+rides_2020_q1 <- yellow_tripdata |> 
+    mutate(pickup_year = year(tpep_pickup_datetime),
+           pickup_month = month(tpep_pickup_datetime),
+           pickup_date = as.Date(tpep_pickup_datetime)) |> 
+    filter(pickup_year == 2020, 
+           pickup_month <= 12) 
+
+rides <- rides_2020_q1 |> 
+    group_by(pickup_date) |> 
+    summarise(trips = n()) |> 
+    arrange(pickup_date) |> 
+    collect() |> 
+    as_tsibble(index = pickup_date)
+
+
+toc()
+```
+
+
+## Time Series Plot
+
+```{r}
+rides_tsplt <- rides |> 
+    autoplot(trips) +
+      labs(title = "NYC Yellow Cab Trips 2023",
+       y = "Trips ('000)",
+       x = "")
+ggplotly(rides_tsplt)
+```
+
+
+```{r}
+toc()
+dbDisconnect(con)
+```

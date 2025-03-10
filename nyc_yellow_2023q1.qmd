@@ -1,7 +1,6 @@
 ---
 title: "NYC Yellow Cab Ride Data 2023 Q1"
 format: html
-editor: visual
 resource_files:
 - "data/*"
 ---

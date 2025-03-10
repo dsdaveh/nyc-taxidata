@@ -6,7 +6,7 @@ resource_files:
 - "data/*"
 ---
 
-# Parquet dataset example 
+# Parquet dataset example
 
 ```{r}
 #| warning: false
@@ -91,4 +91,3 @@ The 3 month series may be adequate for producing a forecast of trips that would 
 ```{r}
 toc()
 ```
-

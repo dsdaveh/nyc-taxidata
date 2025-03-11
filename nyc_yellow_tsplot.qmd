@@ -1,0 +1,57 @@
+---
+title: "NYC Yellow Cab Ride Data 2023 Q1"
+format: html
+---
+
+# Parquet dataset example
+
+```{r}
+#| warning: false
+#| message: false
+
+library(pins)
+library(nanoparquet)
+library(fpp3)
+library(here)
+library(plotly)
+library(lobstr)
+library(tictoc)
+
+tic()
+```
+
+```{r}
+board <- board_connect(auth = "auto")
+rides_data <- pin_read(board, "dave.hurst/nyc_rides")
+```
+
+```{r}
+rides <- rides_data |> 
+    filter(year(pickup_date) >= 2023) |>  #remove data errors
+    count(pickup_date, wt = n_trips) |> 
+    mutate(trips = n / 1000) |> 
+    select(-n) |> 
+    as_tsibble(index = pickup_date)
+```
+
+
+## Time Series Plot
+
+```{r}
+rides_tsplt <- rides |> 
+    autoplot(trips) +
+      labs(title = "NYC Yellow Cab Trips 2023",
+       y = "Trips ('000)",
+       x = "")
+ggplotly(rides_tsplt)
+```
+
+## Discussion
+
+The data shows a clear weekly seasonality, and perhaps a mild trend. We can see minimums for Sunday and Monday, but there is an irregular pattern of 2-day verus 1-day troughs. These may be difficult to model without multiple years of data.\
+\
+The 3 month series may be adequate for producing a forecast of trips that would be useful for operational planning, since support staff and resources are required in proportion to the number of trips. There is other data in the dataset, not explored above that may also help forecast the trips volume.
+
+```{r}
+toc()
+```

@@ -1,0 +1,104 @@
+---
+title: "NYC Yellow Cab Ride Data 2023 Q1"
+format: html
+resource_files:
+- "data/*"
+---
+
+# Parquet dataset example
+
+```{r}
+#| warning: false
+#| message: false
+
+library(dplyr)
+library(purrr)
+library(pins)
+library(nanoparquet)
+
+library(arrow)
+library(fpp3)
+library(here)
+library(plotly)
+library(lobstr)
+library(tictoc)
+
+tic()
+```
+
+## Data Source
+
+This data ways downloaded from the NYC.gov **Taxi & Limousine Commission**, and represents Yellow Cab trip data from January through March of 2023. The data is in monthly `parquet` files, and has been assembed into a single 3 month time series. The original data is available at <https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page>.
+
+## Importing the Data
+
+Downloaded files are in the `data` directory of [this Github repo](https://github.com/dsdaveh/nyc-taxidata).
+
+```{r}
+pfiles <- here('data', list.files(here('data')))
+pfiles |> basename() |> knitr::kable(col.names = 'File')
+```
+
+Aggregate data for one month
+
+```{r}
+rides_by_day_loc <- function(ride_pq) {
+    read_parquet(ride_pq) |> 
+    mutate(
+        pickup_date = as.Date(with_tz(tpep_pickup_datetime, "America/New_York")),
+        trip_duration = tpep_dropoff_datetime - tpep_pickup_datetime
+    ) |> 
+    group_by(pickup_date, PULocationID) |> 
+    summarise(
+        n_trips = n(), 
+        avg_passenger_count = mean(passenger_count, na.rm = TRUE),
+        avg_trip_distance = mean(trip_distance, na.rm = TRUE),
+        min_trip_distance = min(trip_distance, na.rm = TRUE),
+        max_trip_distance = max(trip_distance, na.rm = TRUE),
+        avg_trip_duration = mean(trip_duration, na.rm = TRUE),
+        min_trip_duration = min(trip_duration, na.rm = TRUE),
+        max_trip_duration = max(trip_duration, na.rm = TRUE),
+        n_DO_locations = n(),
+        avg_fare_amount = mean(fare_amount, na.rm = TRUE),
+        max_fare_amount = max(fare_amount, na.rm = TRUE),
+        avg_tip_amount = mean(tip_amount, na.rm = TRUE),
+        max_tip_amount = max(tip_amount, na.rm = TRUE),
+        n_tolls = sum(tolls_amount > 0, na.rm = TRUE),
+        avg_total = mean(total_amount, na.rm = TRUE),
+        max_total = max(total_amount, na.rm = TRUE),
+        n_airport = sum(tolls_amount > 0, na.rm = TRUE),
+        n_congestion = sum(congestion_surcharge > 0, na.rm = TRUE),
+        .groups = 'drop') 
+}
+```
+
+```{r eval=FALSE}
+ride_agg <- rides_by_day_loc(pfiles[1])
+obj_size(ride_agg)
+```
+
+Roughly 1MB for 1 month of data.
+
+
+Process the data in chunks (files) and construct an aggregated dataset
+
+```{r}
+tic('aggregate data')
+rides <- purrr::map_df(pfiles, rides_by_day_loc) 
+toc()
+```
+
+Pin the data to Connect
+
+```{r}
+board <- board_connect(auth = "auto")
+```
+
+```{r}
+board |> pin_write(rides, "dave.hurst/nyc_rides", type = "parquet")
+```
+
+
+```{r}
+toc()
+```

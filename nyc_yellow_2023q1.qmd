@@ -62,7 +62,7 @@ tic('aggregate data')
 rides <- purrr::map_dfr(pfiles, read_parquet) |> 
     mutate(ymd = as.Date(with_tz(tpep_pickup_datetime, "America/New_York"))) |> 
     filter(year(ymd) == 2023,
-           month(ymd) <= 3) |>
+           month(ymd) <= 4) |>
     count(ymd) |> 
     mutate(trips = n / 1000) |> 
     select(-n) |> 

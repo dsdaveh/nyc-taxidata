@@ -63,7 +63,7 @@ rides_2020_q1 <- yellow_tripdata |>
            pickup_month = month(tpep_pickup_datetime),
            pickup_date = as.Date(tpep_pickup_datetime)) |> 
     filter(pickup_year == 2023, 
-           pickup_month <= 3) 
+           pickup_month <= 4) 
 ```
 
 ```{r}
